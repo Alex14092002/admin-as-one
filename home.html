@@ -39,32 +39,44 @@
                 <span class="sr-only">Loading...</span>
             </div>
         </div>
-        <div class="sidebar pe-4 pb-3">
+        <div class="sidebar pe-4 pb-3" id='sidebar'>
             <nav class="navbar bg-light navbar-light">
-              <a href="home.html" class="navbar-brand mx-4 mb-3">
-                <img src="https://as-1.com.vn/Content/Uploads/images/logo.png" width="200px" alt="" />
-              </a>
-    
-              <div class="navbar-nav w-100">
-              
-                
-                <a href="./table.html?name=products" class="nav-item nav-link"
-                ><i class="fa fa-tachometer-alt me-2"></i>Sản phẩm</a
-              >
-                <a href="pagepost.html?name=info" class="nav-item nav-link"
-                  ><i class="fa fa-th me-2"></i>Trang giới thiệu</a
-                >
-              
-                <a href="post.html" class="nav-item nav-link"
-                  ><i class="fa fa-table me-2"></i>Bài viết</a
-                >
-              
-              <a href="account.html" class="nav-item nav-link "
-              ><i class="fa fa-user me-2"></i>Tài khoản</a
-            >
-              </div>
+                <a href="home.html" class="navbar-brand mx-4 mb-3">
+                    <img
+                        src="https://as-1.com.vn/Content/Uploads/images/logo.png"
+                        width="200px"
+                        alt="" />
+                </a>
+
+                <div class="navbar-nav w-100">
+                    <a href="./table.html?name=products" class="nav-item nav-link"
+                        ><i class="fa fa-tachometer-alt me-2"></i>Sản phẩm</a
+                    >
+                    <a href="pagepost.html?name=info" class="nav-item nav-link"
+                        ><i class="fa fa-th me-2"></i>Trang giới thiệu</a
+                    >
+
+                    <a href="post.html" class="nav-item nav-link"
+                        ><i class="fa fa-table me-2"></i>Bài viết</a
+                    >
+
+                    <a href="account.html" class="nav-item nav-link"
+                        ><i class="fa fa-user me-2"></i>Tài khoản</a
+                    >
+
+                    <a href="./danh-muc.html" class="nav-item nav-link"
+                        ><i class="fa fa-table me-2"></i>Danh mục</a
+                    >
+                    <a href="./hang-san-xuat.html" class="nav-item nav-link"
+                        ><i class="fa fa-table me-2"></i>Hãng sản xuất</a
+                    >
+                    <a href="./list-account.html" class="nav-item nav-link"
+                        ><i class="fa fa-table me-2"></i>Danh sách tài khoản</a
+                    >
+                </div>
             </nav>
-          </div>
+        </div>
+
         <div class="content">
             <!-- Navbar Start -->
             <nav class="navbar navbar-expand bg-light navbar-light sticky-top px-4 py-0">
@@ -453,6 +465,50 @@
     <script src="lib/tempusdominus/js/moment-timezone.min.js"></script>
     <script src="lib/tempusdominus/js/tempusdominus-bootstrap-4.min.js"></script>
     <script src="js/main.js"></script>
+    <script>document.addEventListener("DOMContentLoaded", function() {
+        const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+    
+        if (userInfo) {
+            const role = userInfo.role;
+    
+            // Chọn các phần tử li chứa các mục trong sidebar
+            const navItems = document.querySelectorAll(".navbar-nav .nav-item");
+    
+            // Duyệt qua từng mục và ẩn hoặc hiển thị tùy thuộc vào vai trò
+            navItems.forEach(item => {
+                const itemName = item.textContent.trim();
+                switch (role) {
+                    case "admin":
+                        // Hiển thị tất cả các mục cho vai trò admin
+                        item.style.display = "block";
+                        break;
+                    case "đăng bài":
+                        // Hiển thị mục "Bài viết" và "Tài khoản" cho vai trò đăng bài
+                        if (itemName === "Bài viết" || itemName === "Tài khoản") {
+                            item.style.display = "block";
+                        } else {
+                            item.style.display = "none";
+                        }
+                        break;
+                    case "đăng sản phẩm":
+                        // Hiển thị mục "Sản phẩm" và "Tài khoản" cho vai trò đăng sản phẩm
+                        if (itemName === "Sản phẩm" || itemName === "Tài khoản") {
+                            item.style.display = "block";
+                        } else {
+                            item.style.display = "none";
+                        }
+                        break;
+                    // Thêm các trường hợp khác nếu có
+                    default:
+                        // Ẩn tất cả các mục nếu không phù hợp với vai trò
+                        item.style.display = "none";
+                }
+            });
+        }
+    });
+    </script>
+    
+  
 </body>
 
 </html>

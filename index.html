@@ -113,13 +113,22 @@
 				const username = document.querySelector("#username").value;
 				const password = document.querySelector("#password").value;
 				const res = await fetch(
-					`https://data-as-one-default-rtdb.firebaseio.com/admin.json`
+					`https://data-as-one-default-rtdb.firebaseio.com/account.json`
 				);
 				const data = await res.json();
 
 				if (data) {
-					if (username == data.username && md5(password) == data.password) {
-						localStorage.setItem("admin", "true");
+					const account = Object.entries(data).find(
+						([key, acc]) =>
+							acc.username === username && acc.password === md5(password)
+					);
+
+					if (account) {
+						// Lưu thông tin người dùng vào localStorage (kèm key)
+						const [key, userInfo] = account;
+						localStorage.setItem("userInfo", JSON.stringify(userInfo));
+						localStorage.setItem("userKey", key);
+
 						alert("Đăng nhập thành công");
 						window.location.href = "./home.html";
 					} else {

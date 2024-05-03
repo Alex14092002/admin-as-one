@@ -88,39 +88,20 @@
 					</div>
 				</nav>
 			</div>
-			<div class="content">
-				<div class="">
-					<textarea id="editor"></textarea>
-				</div>
 
-				<div class="form-floating mb-3">
-					<input type="text" class="form-control" id="title" />
-					<label for="floatingInput">Name</label>
-				</div>
-
-				<div class="form-floating mb-3">
-					<input type="text" class="form-control" id="create" />
-					<label for="floatingPassword">Ngày up</label>
-				</div>
-
-				<div class="form-floating mb-3">
-					<input type="file" id="inputImage" accept="image/*" />
-					<img
-						id="previewImage"
-						src="#"
-						alt="Preview"
-						style="max-width: 200px; max-height: 200px" />
-				</div>
-
-				<div class="form-floating mb-3">
-					<input type="text" class="form-control" id="des" />
-					<label for="floatingPassword">Mô tả</label>
-				</div>
-
-				<div class="d-flex justify-content-center">
-					<button class="btn btn-success" onclick="savePost()">
-						Lưu bài viết
-					</button>
+			<div class="content py-3">
+				<a href="./create-account.html" class="btn btn-dark">Thêm tài khoản</a>
+				<div class="table-responsive">
+					<table class="table">
+						<thead>
+							<tr>
+								<th scope="col">Tên đăng nhập</th>
+								<th scope="col">Quyền</th>
+								<th scope="col">Hành động</th>
+							</tr>
+						</thead>
+						<tbody id="table"></tbody>
+					</table>
 				</div>
 			</div>
 			<a href="#" class="btn btn-lg btn-primary btn-lg-square back-to-top"
@@ -137,112 +118,93 @@
 		<script src="lib/tempusdominus/js/moment-timezone.min.js"></script>
 		<script src="lib/tempusdominus/js/tempusdominus-bootstrap-4.min.js"></script>
 		<script src="js/main.js"></script>
-		<script src="./ckeditor/ckeditor.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/blueimp-md5@2.18.0/js/md5.min.js"></script>
 		<script>
-			CKEDITOR.replace("editor", {});
-		</script>
-		<script>
-			let param = new URLSearchParams(window.location.search);
-			let key = param.get("key");
+			async function deleteAccount(accountKey) {
+				const res = await fetch(
+					`https://data-as-one-default-rtdb.firebaseio.com/account.json`
+				);
+				const data = await res.json();
+				const adminCount = Object.values(data).filter(
+					(account) => account.role === "admin"
+				).length;
 
-			async function fetchPostData() {
-				try {
-					const response = await fetch(
-						`https://data-as-one-default-rtdb.firebaseio.com/new/${key}.json`
-					);
-					const data = await response.json();
-					if (data) {
-						const post = data;
-						console.log(post);
-						CKEDITOR.instances["editor"].setData(post.detail);
-						document.getElementById("title").value = post.name;
-						document.getElementById("create").value = post.create;
-						document.getElementById("previewImage").src = post.avt;
-						document.getElementById("des").value = post.describe;
+				if (adminCount <= 1 && data[accountKey].role === "admin") {
+					alert("Bạn không thể xoá tài khoản admin cuối cùng!");
+					return;
+				}
+
+				if (confirm("Bạn có chắc chắn muốn xoá tài khoản này không?")) {
+					try {
+						const response = await fetch(
+							`https://data-as-one-default-rtdb.firebaseio.com/account/${accountKey}.json`,
+							{
+								method: "DELETE",
+							}
+						);
+
+						if (response.ok) {
+							alert("Xoá tài khoản thành công!");
+							window.location.reload(); // Tải lại trang để cập nhật bảng
+						} else {
+							alert("Xoá tài khoản thất bại.");
+						}
+					} catch (error) {
+						console.error("Đã xảy ra lỗi:", error);
+						alert("Đã xảy ra lỗi khi xoá tài khoản.");
 					}
-				} catch (error) {
-					console.error("Error fetching post data:", error);
 				}
 			}
-
-			fetchPostData();
-		</script>
-		<script>
-			const inputImage = document.getElementById("inputImage");
-			const previewImage = document.getElementById("previewImage");
-
-			inputImage.addEventListener("change", () => {
-				const file = inputImage.files[0];
-				if (file) {
-					const reader = new FileReader();
-					reader.onload = () => {
-						previewImage.src = reader.result;
-					};
-					reader.readAsDataURL(file);
+			async function updatePassword(accountKey) {
+				const newPassword = prompt("Nhập mật khẩu mới:");
+				if (newPassword === null) {
+					// Nếu người dùng hủy bỏ nhập mật khẩu mới
+					return;
 				}
-			});
 
-			async function savePost() {
-				const title = document.getElementById("title").value;
-				const create = document.getElementById("create").value;
-				const description = document.getElementById("des").value;
+				const hashedPassword = md5(newPassword); // Hash mật khẩu mới bằng MD5
 
-				// Lấy dữ liệu từ CKEditor
-				const editorData = CKEDITOR.instances.editor.getData();
-
-				// Lấy base64 của ảnh xem trước
-				const previewImageSrc = previewImage.src;
-				const previewImageBase64 = await getBase64FromImageUrl(previewImageSrc);
-
-				// Patch dữ liệu lên Firebase
 				try {
 					const response = await fetch(
-						`https://data-as-one-default-rtdb.firebaseio.com/new/${key}.json`,
+						`https://data-as-one-default-rtdb.firebaseio.com/account/${accountKey}.json`,
 						{
 							method: "PATCH",
-							headers: {
-								"Content-Type": "application/json",
-							},
-							body: JSON.stringify({
-								name: title,
-								create: create,
-								describe: description,
-								detail: editorData,
-								avt: previewImageBase64,
-							}),
+							body: JSON.stringify({ password: hashedPassword }),
 						}
 					);
+
 					if (response.ok) {
-						console.log("Post updated successfully!");
-						alert("Post updated successfully!");
+						alert("Cập nhật mật khẩu thành công!");
 					} else {
-						console.error("Error updating post!");
-						alert("Error updating post!");
+						alert("Cập nhật mật khẩu thất bại.");
 					}
 				} catch (error) {
-					console.error("Error updating post:", error);
-					alert("Error updating post: " + error);
+					console.error("Đã xảy ra lỗi:", error);
+					alert("Đã xảy ra lỗi khi cập nhật mật khẩu.");
 				}
 			}
 
-			function getBase64FromImageUrl(url) {
-				return new Promise((resolve, reject) => {
-					const img = new Image();
-					img.onload = function () {
-						const canvas = document.createElement("canvas");
-						const ctx = canvas.getContext("2d");
-						canvas.width = this.width;
-						canvas.height = this.height;
-						ctx.drawImage(this, 0, 0);
-						const base64 = canvas.toDataURL("image/jpeg");
-						resolve(base64);
-					};
-					img.onerror = function () {
-						reject(new Error("Failed to load image"));
-					};
-					img.src = url;
-				});
-			}
+			(async () => {
+				const res = await fetch(
+					`https://data-as-one-default-rtdb.firebaseio.com/account.json`
+				);
+				const data = await res.json();
+				const table = document.querySelector("#table");
+				if (data) {
+					Object.entries(data).map(([key, value]) => {
+						table.innerHTML += `
+                        <tr>
+                        <td>${value.username}</td>
+                        <td>${value.role}</td>
+                        <td>
+                          <button onclick="updatePassword('${key}')" class="btn btn-primary">Cấp lại mật khẩu</a>
+                          <button onclick="deleteAccount('${key}')" class="btn btn-danger">Xoá</button>
+                        </td>
+                      </tr>
+                        `;
+					});
+				}
+			})();
 		</script>
 		<script>
 			document.addEventListener("DOMContentLoaded", function () {

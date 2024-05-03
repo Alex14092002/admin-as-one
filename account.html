@@ -75,42 +75,40 @@
 						<a href="account.html" class="nav-item nav-link"
 							><i class="fa fa-user me-2"></i>Tài khoản</a
 						>
+
+						<a href="./danh-muc.html" class="nav-item nav-link"
+							><i class="fa fa-table me-2"></i>Danh mục</a
+						>
+						<a href="./hang-san-xuat.html" class="nav-item nav-link"
+							><i class="fa fa-table me-2"></i>Hãng sản xuất</a
+						>
+						<a href="./list-account.html" class="nav-item nav-link"
+							><i class="fa fa-table me-2"></i>Danh sách tài khoản</a
+						>
 					</div>
 				</nav>
 			</div>
-			s
+
 			<div class="content py-3">
-				<h2>Đổi mật khẩu</h2>
-				<form>
+				<h2>Quên mật khẩu</h2>
+				<form id="forgotPasswordForm">
 					<div class="mb-3">
 						<label for="exampleInputEmail1" class="form-label"
-							>Nhập mật khẩu cũ</label
+							>Nhập email quên pass</label
 						>
 						<input
-							type="text"
+							type="email"
 							class="form-control"
-							id="passafter"
-							aria-describedby="emailHelp" />
-						<div id="emailHelp" class="form-text">
-							Nhập sai sẽ không đổi được mật khẩu
-						</div>
+							id="forgotEmail"
+							aria-describedby="emailHelp"
+							required />
 					</div>
-					<div class="mb-3">
-						<label for="exampleInputPassword1" class="form-label"
-							>Nhập mật khẩu mới</label
-						>
-						<input type="password" class="form-control" id="passbefore" />
-					</div>
-					<div class="mb-3">
-						<label for="exampleInputPassword1" class="form-label"
-							>Nhập lại mật khẩu mới</label
-						>
-						<input type="password" class="form-control" id="passbeforeEnter" />
-					</div>
-
-					<button type="submit" class="btn btn-primary">Lưu</button>
+					<button type="submit" class="btn btn-primary">Lấy mật khẩu</button>
 				</form>
+				<br /><br /><br /><br /><br /><br /><br />
+				<button class="btn btn-primary" onclick="logout()">Đăng xuất</button>
 			</div>
+
 			<a href="#" class="btn btn-lg btn-primary btn-lg-square back-to-top"
 				><i class="bi bi-arrow-up"></i
 			></a>
@@ -127,37 +125,135 @@
 		<script src="js/main.js"></script>
 		<script src="https://cdn.jsdelivr.net/npm/blueimp-md5@2.18.0/js/md5.min.js"></script>
 		<script>
-			const saveChange = async () => {
-				const passafter = document.querySelector("#passafter").value;
-				const passbefore = document.querySelector("#passbefore").value;
-				const passbeforeEnter =
-					document.querySelector("#passbeforeEnter").value;
-				const res = await fetch(
-					`https://data-as-one-default-rtdb.firebaseio.com/admin.json`
-				);
-				const data = await res.json();
-				console.log(passbefore, passbeforeEnter);
-				if (md5(passafter) == data.password && passbefore == passbeforeEnter) {
-					fetch(`https://data-as-one-default-rtdb.firebaseio.com/admin.json`, {
-						method: "PATCH",
-						body: JSON.stringify({
-							password: md5(passbefore),
-						}),
-						headers: {
-							"Content-Type": "application/json",
-						},
-					})
-						.then((response) => response.json())
-						.then((data) => {
-							// Xử lý phản hồi từ Firebase sau khi POST thành công
-							sessionStorage.removeItem("admin");
-							alert("Cập nhật mật khẩu thành công");
-							window.location.href = "./index.html";
-						});
-				} else {
-					alert("Nhập các trường không chính xác");
-				}
+			const logout = () => {
+				localStorage.removeItem("userInfo");
+				window.location.href = "./index.html";
 			};
+		</script>
+
+		<script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+		<script type="text/javascript">
+			(function () {
+				emailjs.init("FhB8IlhSaPAOpWxH5");
+			})();
+		</script>
+		<script>
+			document
+				.getElementById("forgotPasswordForm")
+				.addEventListener("submit", async (e) => {
+					e.preventDefault();
+					const email = document.getElementById("forgotEmail").value;
+					const newPassword = generateRandomPassword();
+					const newPasswordHash = md5(newPassword);
+
+					// Lấy userKey từ localStorage
+					const userKey = localStorage.getItem("userKey");
+
+					if (userKey) {
+						// Gửi mật khẩu mới và hash đến Firebase
+						fetch(
+							`https://data-as-one-default-rtdb.firebaseio.com/account/${userKey}.json`,
+							{
+								method: "PATCH",
+								body: JSON.stringify({
+									password: newPasswordHash,
+								}),
+								headers: {
+									"Content-Type": "application/json",
+								},
+							}
+						)
+							.then((response) => response.json())
+							.then((data) => {
+								alert(`Mật khẩu mới của bạn là: ${newPassword}`);
+								// Gửi email chứa mật khẩu mới cho người dùng
+								sendEmail(email, newPassword);
+							})
+							.catch((error) => {
+								console.error("Error updating password:", error);
+								alert(
+									"Đã xảy ra lỗi khi cập nhật mật khẩu. Vui lòng thử lại sau."
+								);
+							});
+					} else {
+						alert("Không tìm thấy thông tin tài khoản để cập nhật mật khẩu.");
+					}
+				});
+
+			// Hàm tạo mật khẩu ngẫu nhiên 6 kí tự
+			function generateRandomPassword() {
+				const characters =
+					"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+				let password = "";
+				for (let i = 0; i < 6; i++) {
+					password += characters.charAt(
+						Math.floor(Math.random() * characters.length)
+					);
+				}
+				return password;
+			}
+
+			function sendEmail(email, password) {
+				emailjs
+					.send("service_bgjvqnv", "template_nx6ezdb", {
+						to_email: email,
+						password: password,
+					})
+					.then(
+						function (response) {
+							console.log("Email sent successfully:", response);
+							alert(`Mật khẩu mới đã được gửi đến email ${email}`);
+							window.location.href = "./index.html";
+						},
+						function (error) {
+							console.error("Email sending failed:", error);
+							alert("Đã xảy ra lỗi khi gửi email. Vui lòng thử lại sau.");
+						}
+					);
+			}
+		</script>
+		<script>
+			document.addEventListener("DOMContentLoaded", function () {
+				const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+
+				if (userInfo) {
+					const role = userInfo.role;
+
+					// Chọn các phần tử li chứa các mục trong sidebar
+					const navItems = document.querySelectorAll(".navbar-nav .nav-item");
+
+					// Duyệt qua từng mục và ẩn hoặc hiển thị tùy thuộc vào vai trò
+					navItems.forEach((item) => {
+						const itemName = item.textContent.trim();
+						switch (role) {
+							case "admin":
+								// Hiển thị tất cả các mục cho vai trò admin
+								item.style.display = "block";
+								break;
+							case "đăng bài":
+								// Hiển thị mục "Bài viết" và "Tài khoản" cho vai trò đăng bài
+								if (itemName === "Bài viết" || itemName === "Tài khoản") {
+									item.style.display = "block";
+								} else {
+									item.style.display = "none";
+								}
+								break;
+							case "đăng sản phẩm":
+								// Hiển thị mục "Sản phẩm" và "Tài khoản" cho vai trò đăng sản phẩm
+								if (itemName === "Sản phẩm" || itemName === "Tài khoản") {
+									item.style.display = "block";
+								} else {
+									item.style.display = "none";
+								}
+								break;
+							// Thêm các trường hợp khác nếu có
+							default:
+								// Ẩn tất cả các mục nếu không phù hợp với vai trò
+								item.style.display = "none";
+						}
+					});
+				}
+			});
 		</script>
 	</body>
 </html>
