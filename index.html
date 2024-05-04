@@ -87,6 +87,12 @@
 							<button onclick="login()" class="btn btn-primary py-3 w-100 mb-4">
 								Đăng nhập
 							</button>
+
+							<button
+								onclick="forgotPassword()"
+								class="btn btn-danger py-3 w-100 mb-4">
+								Quên mật khẩu?
+							</button>
 						</div>
 					</div>
 				</div>
@@ -107,6 +113,8 @@
 
 		<!-- Template Javascript -->
 		<script src="js/main.js"></script>
+
+		<script src="https://cdn.emailjs.com/dist/email.min.js"></script>
 		<script src="https://cdn.jsdelivr.net/npm/blueimp-md5@2.18.0/js/md5.min.js"></script>
 		<script>
 			const login = async () => {
@@ -133,6 +141,86 @@
 						window.location.href = "./home.html";
 					} else {
 						alert("Sai thông tin đăng nhập");
+					}
+				}
+			};
+		</script>
+
+		<script>
+			// Initialize EmailJS with your user ID
+			emailjs.init("FhB8IlhSaPAOpWxH5");
+
+			// Function to send email using EmailJS
+			function sendEmail(email, newPassword) {
+				// Parameters for the email template
+				const params = {
+					to_name: email,
+					password: newPassword,
+					from_name: "AS-ONE VN",
+				};
+
+				// Send the email
+				emailjs.send("service_bgjvqnv", "template_nx6ezdb", params).then(
+					function (response) {
+						console.log("Email sent successfully", response);
+						alert("Mật khẩu mới đã được gửi qua email.");
+					},
+					function (error) {
+						console.error("Email could not be sent", error);
+						alert("Không thể gửi email.");
+					}
+				);
+			}
+
+			// Function to handle the forgot password process
+			// Function to handle the forgot password process
+			const forgotPassword = async () => {
+				const username = prompt("Nhập tên tài khoản của bạn:");
+				const email = prompt("Nhập địa chỉ email của bạn:");
+
+				if (username && email) {
+					try {
+						// Fetch data from the database
+						const res = await fetch(
+							`https://data-as-one-default-rtdb.firebaseio.com/account.json`
+						);
+						const data = await res.json();
+
+						if (data) {
+							// Find the account based on the provided username and email
+							const accountKey = Object.keys(data).find(
+								(key) => data[key].username === username
+							);
+
+							if (accountKey) {
+								// Generate a random password
+								const newPassword = Math.random().toString(36).slice(-6);
+								// Encrypt the new password using MD5 (you might need to include the MD5 library)
+								const encryptedPassword = md5(newPassword);
+
+								// Update the password in the database
+								await fetch(
+									`https://data-as-one-default-rtdb.firebaseio.com/account/${accountKey}/password.json`,
+									{
+										method: "PUT",
+										body: JSON.stringify(encryptedPassword),
+										headers: {
+											"Content-Type": "application/json",
+										},
+									}
+								);
+
+								// Send the new password via email
+								sendEmail(email, newPassword);
+							} else {
+								alert("Tên tài khoản hoặc địa chỉ email không chính xác.");
+							}
+						} else {
+							alert("Không thể kết nối đến cơ sở dữ liệu.");
+						}
+					} catch (error) {
+						console.error("Lỗi:", error);
+						alert("Đã xảy ra lỗi khi xử lý quên mật khẩu.");
 					}
 				}
 			};
