@@ -101,19 +101,21 @@
 						<div class="col-12">
 							<div class="bg-light rounded h-100 p-4">
 								<div class="d-flex justify-content-between py-4">
-									<h6 class="mb-4">Bài viết</h6>
+									<h6 class="mb-4">Nhà cung cấp</h6>
 									<div>
-										<a href="pagepost.html?name=new" class="btn btn-success"
-											>Thêm bài viết</a
-										>
+										<button
+											class="btn btn-success"
+											data-bs-toggle="modal"
+											data-bs-target="#addCategoryModal">
+											Thêm Nhà cung cấp
+										</button>
 									</div>
 								</div>
 								<div class="table-responsive">
 									<table class="table">
 										<thead>
 											<tr>
-												<th scope="col">Tên bài viết</th>
-
+												<th scope="col">Hình ảnh</th>
 												<th scope="col">Hành động</th>
 											</tr>
 										</thead>
@@ -133,6 +135,65 @@
 			></a>
 		</div>
 
+		<div
+			class="modal fade"
+			id="addCategoryModal"
+			tabindex="-1"
+			aria-labelledby="addCategoryModalLabel"
+			aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="addCategoryModalLabel">
+							Thêm Nhà cung cấp
+						</h5>
+						<button
+							type="button"
+							class="btn-close"
+							data-bs-dismiss="modal"
+							aria-label="Close"></button>
+					</div>
+					<div class="modal-body">
+						<form id="addCategoryForm">
+							<div class="mb-3">
+								<label for="addCategoryImage" class="form-label"
+									>Hình Ảnh Nhà cung cấp</label
+								>
+								<input
+									type="file"
+									class="form-control"
+									id="addCategoryImage"
+									name="addCategoryImage"
+									accept="image/*"
+									onchange="previewImage(this)" />
+								<!-- Thêm sự kiện onchange -->
+								<img
+									id="imagePreview"
+									src="#"
+									alt="Preview"
+									style="max-width: 100px; max-height: 100px; display: none" />
+								<!-- Thêm thẻ img để hiển thị trước hình ảnh -->
+							</div>
+						</form>
+					</div>
+					<div class="modal-footer">
+						<button
+							type="button"
+							class="btn btn-secondary"
+							data-bs-dismiss="modal">
+							Đóng
+						</button>
+						<button
+							type="button"
+							class="btn btn-primary"
+							onclick="saveNewCategory()">
+							Lưu
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
 		<!-- JavaScript Libraries -->
 		<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -145,97 +206,99 @@
 		<script src="lib/tempusdominus/js/tempusdominus-bootstrap-4.min.js"></script>
 		<!-- Template Javascript -->
 		<script src="js/main.js"></script>
-
 		<script>
-			async function deletePost(key) {
-				try {
-					const response = await fetch(
-						`https://data-as-one-default-rtdb.firebaseio.com/new/${key}.json`,
-						{
-							method: "DELETE",
-						}
-					);
-					if (response.ok) {
-						console.log("Post deleted successfully!");
-						alert("Post deleted successfully!");
-						location.reload(); // Reload the page after deleting
-					} else {
-						console.error("Error deleting post!");
-						alert("Error deleting post!");
+			function deleteCategory(key) {
+				// Gửi yêu cầu DELETE tới Firebase
+				fetch(
+					`https://data-as-one-default-rtdb.firebaseio.com/nhacungcap/${key}.json`,
+					{
+						method: "DELETE",
 					}
-				} catch (error) {
-					console.error("Error deleting post:", error);
-					alert("Error deleting post: " + error);
-				}
+				)
+					.then((response) => {
+						if (!response.ok) {
+							throw new Error("Có lỗi khi xóa dữ liệu từ Firebase.");
+						}
+						console.log("Dữ liệu đã được xóa từ Firebase.");
+						location.reload(); // Tải lại trang sau khi xóa thành công
+					})
+					.catch((error) => {
+						console.error("Lỗi khi xóa dữ liệu từ Firebase:", error);
+					});
 			}
 
+			function previewImage(input) {
+				if (input.files && input.files[0]) {
+					const reader = new FileReader();
+					reader.onload = function (e) {
+						$("#imagePreview").attr("src", e.target.result).show();
+					};
+					reader.readAsDataURL(input.files[0]);
+				}
+			}
 			(async () => {
+				const table = document.querySelector("#table");
 				const res = await fetch(
-					`https://data-as-one-default-rtdb.firebaseio.com/new.json`
+					`https://data-as-one-default-rtdb.firebaseio.com/nhacungcap.json`
 				);
 				const data = await res.json();
-				console.log(data);
-				const table = document.querySelector("#table");
 				if (data) {
 					Object.entries(data).map(([key, value]) => {
-						if (value != null) {
-							table.innerHTML += `
-							<tr>
-								<td>${value.name}</td>
-							
-								<td>
-									<a href='updatepost.html?key=${key}' class="btn btn-primary">Sửa</a>
-									<button class="btn btn-danger" onclick="deletePost('${key}')">Xoá</button>
-								</td>
-							</tr>
-							`;
-						}
+						table.innerHTML += `
+						<tr>
+												<td>
+													<img src=${value.src} width="100px" alt="" />
+												</td>
+												<td>
+          <button class="btn btn-dark" onclick="deleteCategory('${key}')">Xóa</button>
+        </td>
+											</tr>
+						`;
 					});
 				}
 			})();
-		</script>
-		<script>
-			document.addEventListener("DOMContentLoaded", function () {
-				const userInfo = JSON.parse(localStorage.getItem("userInfo"));
 
-				if (userInfo) {
-					const role = userInfo.role;
+			// Hàm để lưu mới nhà cung cấp sử dụng Fetch
+			function saveNewCategory() {
+				const imageInput = document.getElementById("addCategoryImage");
+				const imageFile = imageInput.files[0];
 
-					// Chọn các phần tử li chứa các mục trong sidebar
-					const navItems = document.querySelectorAll(".navbar-nav .nav-item");
+				if (imageFile) {
+					const reader = new FileReader();
 
-					// Duyệt qua từng mục và ẩn hoặc hiển thị tùy thuộc vào vai trò
-					navItems.forEach((item) => {
-						const itemName = item.textContent.trim();
-						switch (role) {
-							case "admin":
-								// Hiển thị tất cả các mục cho vai trò admin
-								item.style.display = "block";
-								break;
-							case "đăng bài":
-								// Hiển thị mục "Bài viết" và "Tài khoản" cho vai trò đăng bài
-								if (itemName === "Bài viết" || itemName === "Tài khoản") {
-									item.style.display = "block";
-								} else {
-									item.style.display = "none";
+					reader.onload = function (e) {
+						const imageData = e.target.result;
+						const newData = {
+							src: imageData,
+						};
+
+						// Gửi dữ liệu lên Firebase sử dụng Fetch
+						fetch(
+							"https://data-as-one-default-rtdb.firebaseio.com/nhacungcap.json",
+							{
+								method: "POST",
+								body: JSON.stringify(newData),
+							}
+						)
+							.then((response) => {
+								if (!response.ok) {
+									throw new Error("Có lỗi khi gửi dữ liệu lên Firebase.");
 								}
-								break;
-							case "đăng sản phẩm":
-								// Hiển thị mục "Sản phẩm" và "Tài khoản" cho vai trò đăng sản phẩm
-								if (itemName === "Sản phẩm" || itemName === "Tài khoản") {
-									item.style.display = "block";
-								} else {
-									item.style.display = "none";
-								}
-								break;
-							// Thêm các trường hợp khác nếu có
-							default:
-								// Ẩn tất cả các mục nếu không phù hợp với vai trò
-								item.style.display = "none";
-						}
-					});
+								console.log("Dữ liệu đã được lưu lên Firebase.");
+								$("#addCategoryModal").modal("hide");
+								imageInput.value = "";
+								location.reload();
+							})
+							.catch((error) => {
+								console.error("Lỗi khi gửi dữ liệu lên Firebase:", error);
+							});
+					};
+
+					reader.readAsDataURL(imageFile);
+				} else {
+					console.error("Không có ảnh được chọn!");
 				}
-			});
+			}
 		</script>
 	</body>
 </html>
