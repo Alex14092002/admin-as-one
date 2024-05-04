@@ -101,20 +101,39 @@
 				</nav>
 			</div>
 			<div class="content py-3">
-				<h2>Quên mật khẩu</h2>
+				<h2>Đổi mật khẩu</h2>
 				<form id="forgotPasswordForm">
 					<div class="mb-3">
 						<label for="exampleInputEmail1" class="form-label"
-							>Nhập email quên pass</label
+							>Nhập mật khẩu hiện tại</label
 						>
 						<input
-							type="email"
+							type="password"
 							class="form-control"
-							id="forgotEmail"
 							aria-describedby="emailHelp"
 							required />
 					</div>
-					<button type="submit" class="btn btn-primary">Lấy mật khẩu</button>
+					<div class="mb-3">
+						<label for="exampleInputEmail1" class="form-label"
+							>Nhập mật khẩu mới</label
+						>
+						<input
+							type="passwordnew"
+							class="form-control"
+							aria-describedby="emailHelp"
+							required />
+					</div>
+					<div class="mb-3">
+						<label for="exampleInputEmail1" class="form-label"
+							>Xác nhận mật khẩu mới</label
+						>
+						<input
+							type="passwordnewenter"
+							class="form-control"
+							aria-describedby="emailHelp"
+							required />
+					</div>
+					<button type="submit" class="btn btn-primary">Đổi mật khẩu</button>
 				</form>
 				<br /><br /><br /><br /><br /><br /><br />
 				<button class="btn btn-primary" onclick="logout()">Đăng xuất</button>
@@ -148,81 +167,7 @@
 				emailjs.init("FhB8IlhSaPAOpWxH5");
 			})();
 		</script>
-		<script>
-			document
-				.getElementById("forgotPasswordForm")
-				.addEventListener("submit", async (e) => {
-					e.preventDefault();
-					const email = document.getElementById("forgotEmail").value;
-					const newPassword = generateRandomPassword();
-					const newPasswordHash = md5(newPassword);
 
-					// Lấy userKey từ localStorage
-					const userKey = localStorage.getItem("userKey");
-
-					if (userKey) {
-						// Gửi mật khẩu mới và hash đến Firebase
-						fetch(
-							`https://data-as-one-default-rtdb.firebaseio.com/account/${userKey}.json`,
-							{
-								method: "PATCH",
-								body: JSON.stringify({
-									password: newPasswordHash,
-								}),
-								headers: {
-									"Content-Type": "application/json",
-								},
-							}
-						)
-							.then((response) => response.json())
-							.then((data) => {
-								alert(`Mật khẩu mới của bạn là: ${newPassword}`);
-								// Gửi email chứa mật khẩu mới cho người dùng
-								sendEmail(email, newPassword);
-							})
-							.catch((error) => {
-								console.error("Error updating password:", error);
-								alert(
-									"Đã xảy ra lỗi khi cập nhật mật khẩu. Vui lòng thử lại sau."
-								);
-							});
-					} else {
-						alert("Không tìm thấy thông tin tài khoản để cập nhật mật khẩu.");
-					}
-				});
-
-			// Hàm tạo mật khẩu ngẫu nhiên 6 kí tự
-			function generateRandomPassword() {
-				const characters =
-					"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-				let password = "";
-				for (let i = 0; i < 6; i++) {
-					password += characters.charAt(
-						Math.floor(Math.random() * characters.length)
-					);
-				}
-				return password;
-			}
-
-			function sendEmail(email, password) {
-				emailjs
-					.send("service_bgjvqnv", "template_nx6ezdb", {
-						to_email: email,
-						password: password,
-					})
-					.then(
-						function (response) {
-							console.log("Email sent successfully:", response);
-							alert(`Mật khẩu mới đã được gửi đến email ${email}`);
-							window.location.href = "./index.html";
-						},
-						function (error) {
-							console.error("Email sending failed:", error);
-							alert("Đã xảy ra lỗi khi gửi email. Vui lòng thử lại sau.");
-						}
-					);
-			}
-		</script>
 		<script>
 			document.addEventListener("DOMContentLoaded", function () {
 				const userInfo = JSON.parse(localStorage.getItem("userInfo"));
@@ -264,6 +209,76 @@
 						}
 					});
 				}
+			});
+		</script>
+		<script>
+			document.addEventListener("DOMContentLoaded", function () {
+				// Lắng nghe sự kiện submit của form
+				const form = document.getElementById("forgotPasswordForm");
+				form.addEventListener("submit", async function (event) {
+					event.preventDefault(); // Ngăn chặn việc gửi form mặc định
+
+					// Lấy thông tin từ form
+					const currentPassword = document.querySelector(
+						"input[type='password']"
+					).value;
+					const newPassword = document.querySelector(
+						"input[type='passwordnew']"
+					).value;
+					const newPasswordConfirm = document.querySelector(
+						"input[type='passwordnewenter']"
+					).value;
+
+					// Kiểm tra xác nhận mật khẩu mới
+					if (newPassword !== newPasswordConfirm) {
+						alert("Xác nhận mật khẩu mới không khớp!");
+						return;
+					}
+
+					try {
+						// Lấy thông tin tài khoản từ localStorage
+						const userKey = localStorage.getItem("userKey");
+						if (!userKey) {
+							alert(
+								"Không tìm thấy thông tin tài khoản. Vui lòng đăng nhập lại."
+							);
+							return;
+						}
+
+						// Lấy dữ liệu từ cơ sở dữ liệu
+						const res = await fetch(
+							`https://data-as-one-default-rtdb.firebaseio.com/account/${userKey}.json`
+						);
+						const data = await res.json();
+
+						// Kiểm tra mật khẩu hiện tại
+						if (data.password !== md5(currentPassword)) {
+							alert("Mật khẩu hiện tại không đúng!");
+							return;
+						}
+
+						// Mã hóa mật khẩu mới
+						const encryptedPassword = md5(newPassword);
+
+						// Cập nhật mật khẩu mới vào cơ sở dữ liệu
+						await fetch(
+							`https://data-as-one-default-rtdb.firebaseio.com/account/${userKey}/password.json`,
+							{
+								method: "PUT",
+								body: JSON.stringify(encryptedPassword),
+								headers: {
+									"Content-Type": "application/json",
+								},
+							}
+						);
+
+						alert("Đổi mật khẩu thành công!");
+						form.reset(); // Reset form sau khi đổi mật khẩu thành công
+					} catch (error) {
+						console.error("Lỗi:", error);
+						alert("Đã xảy ra lỗi khi đổi mật khẩu.");
+					}
+				});
 			});
 		</script>
 	</body>
