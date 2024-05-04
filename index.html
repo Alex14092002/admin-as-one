@@ -150,13 +150,13 @@
 			// Initialize EmailJS with your user ID
 			emailjs.init("FhB8IlhSaPAOpWxH5");
 
-			// Function to send email using EmailJS
-			function sendEmail(email, newPassword) {
+			function sendEmail(toEmail, newPassword) {
 				// Parameters for the email template
 				const params = {
-					to_name: email,
+					to_name: toEmail,
 					password: newPassword,
 					from_name: "AS-ONE VN",
+					to_mail: toEmail,
 				};
 
 				// Send the email
@@ -173,11 +173,11 @@
 			}
 
 			// Function to handle the forgot password process
-			// Function to handle the forgot password process
+
 			const forgotPassword = async () => {
 				const username = prompt("Nhập tên tài khoản của bạn:");
 				const email = prompt("Nhập địa chỉ email của bạn:");
-
+				console.log(email);
 				if (username && email) {
 					try {
 						// Fetch data from the database
@@ -187,7 +187,7 @@
 						const data = await res.json();
 
 						if (data) {
-							// Find the account based on the provided username and email
+							// Find the account based on the provided username
 							const accountKey = Object.keys(data).find(
 								(key) => data[key].username === username
 							);
@@ -213,7 +213,7 @@
 								// Send the new password via email
 								sendEmail(email, newPassword);
 							} else {
-								alert("Tên tài khoản hoặc địa chỉ email không chính xác.");
+								alert("Tên tài khoản không tồn tại.");
 							}
 						} else {
 							alert("Không thể kết nối đến cơ sở dữ liệu.");
