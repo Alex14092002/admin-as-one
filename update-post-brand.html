@@ -111,26 +111,12 @@
 				</div>
 
 				<div class="form-floating mb-3">
-					<input type="text" class="form-control" id="create" />
-					<label for="floatingPassword">Ngày up</label>
-				</div>
-
-				<div class="form-floating mb-3">
-					<input
-						type="file"
-						id="inputImage"
-						accept="image/*"
-						onchange="previewImage(event)" />
+					<input type="file" id="inputImage" accept="image/*" />
 					<img
 						id="previewImage"
 						src="#"
 						alt="Preview"
 						style="max-width: 200px; max-height: 200px" />
-				</div>
-
-				<div class="form-floating mb-3">
-					<input type="text" class="form-control" id="des" />
-					<label for="floatingPassword">Mô tả</label>
 				</div>
 
 				<div class="d-flex justify-content-center">
@@ -158,48 +144,81 @@
 			CKEDITOR.replace("editor", {});
 		</script>
 		<script>
+			let param = new URLSearchParams(window.location.search);
+			let key = param.get("key");
+
+			async function fetchPostData() {
+				try {
+					const response = await fetch(
+						`https://data-as-one-default-rtdb.firebaseio.com/post-brands/${key}.json`
+					);
+					const data = await response.json();
+					if (data) {
+						const post = data;
+						console.log(post);
+						CKEDITOR.instances["editor"].setData(post.detail);
+						document.getElementById("title").value = post.name;
+
+						document.getElementById("previewImage").src = post.avt;
+					}
+				} catch (error) {
+					console.error("Error fetching post data:", error);
+				}
+			}
+
+			fetchPostData();
+		</script>
+		<script>
+			const inputImage = document.getElementById("inputImage");
+			const previewImage = document.getElementById("previewImage");
+
+			inputImage.addEventListener("change", () => {
+				const file = inputImage.files[0];
+				if (file) {
+					const reader = new FileReader();
+					reader.onload = () => {
+						previewImage.src = reader.result;
+					};
+					reader.readAsDataURL(file);
+				}
+			});
+
 			async function savePost() {
-				let param = new URLSearchParams(window.location.search);
-				let cate = param.get("name");
-				console.log(cate);
 				const title = document.getElementById("title").value;
-				const create = document.getElementById("create").value;
-				const description = document.getElementById("des").value;
 
 				// Lấy dữ liệu từ CKEditor
 				const editorData = CKEDITOR.instances.editor.getData();
 
 				// Lấy base64 của ảnh xem trước
-				const previewImageSrc = document.getElementById("previewImage").src;
+				const previewImageSrc = previewImage.src;
+				const previewImageBase64 = await getBase64FromImageUrl(previewImageSrc);
 
+				// Patch dữ liệu lên Firebase
 				try {
 					const response = await fetch(
-						`https://data-as-one-default-rtdb.firebaseio.com/${cate}.json`,
+						`https://data-as-one-default-rtdb.firebaseio.com/post-brands/${key}.json`,
 						{
-							method: "POST",
+							method: "PATCH",
 							headers: {
 								"Content-Type": "application/json",
 							},
 							body: JSON.stringify({
 								name: title,
-								create: create,
-								describe: description,
 								detail: editorData,
-								// Sử dụng previewImageBase64 nếu có, nếu không thì giữ null
-								avt: previewImageSrc,
+								avt: previewImageBase64,
 							}),
 						}
 					);
 					if (response.ok) {
-						console.log("Post created successfully!");
-						alert("Post created successfully!");
+						console.log("Post updated successfully!");
+						alert("Post updated successfully!");
 					} else {
-						console.error("Error creating post!");
-						alert("Error creating post!");
+						console.error("Error updating post!");
+						alert("Error updating post!");
 					}
 				} catch (error) {
-					console.error("Error creating post:", error);
-					alert("Error creating post: " + error);
+					console.error("Error updating post:", error);
+					alert("Error updating post: " + error);
 				}
 			}
 
@@ -216,25 +235,10 @@
 						resolve(base64);
 					};
 					img.onerror = function () {
-						reject(new Error("Failed to load image: " + url));
+						reject(new Error("Failed to load image"));
 					};
 					img.src = url;
 				});
-			}
-			function previewImage(event) {
-				const preview = document.getElementById("previewImage");
-				const file = event.target.files[0];
-				const reader = new FileReader();
-
-				reader.onloadend = function () {
-					preview.src = reader.result;
-				};
-
-				if (file) {
-					reader.readAsDataURL(file);
-				} else {
-					preview.src = "";
-				}
 			}
 		</script>
 		<script>
