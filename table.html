@@ -210,11 +210,13 @@
 						if (value != null) {
 							table.innerHTML += `
                 <tr>
-                        <td>${value.productName}</td>
-                        <td>${value.model}</td>
-                        <td>${value.manufacturer}</td>
+                        <td>${value.productName ? value.productName : ""}</td>
+                        <td>${value.model ? value.model : ""}</td>
+                        <td>${value.manufacturer ? value.manufacturer : ""}</td>
                         <td>
-                            <img src="${value.images[0]}" alt="" width="100px">
+                            <img src="${
+															value.images ? value.images[0] : ""
+														}" alt="" width="100px">
                         </td>
                         <td>${value.idProduct}</td>
                         <td>
