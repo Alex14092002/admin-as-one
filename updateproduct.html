@@ -282,17 +282,12 @@
 				// Duyệt qua từng file
 				for (let i = 0; i < files.length; i++) {
 					const file = files[i];
-					const reader = new FileReader();
-					// Xử lý khi file được load
-					reader.onload = function (e) {
-						const base64Image = e.target.result;
-						// Thêm ảnh mới vào phần preview
-						previewImg.innerHTML += `<div class="mx-2">
-                                        <img src="${base64Image}" alt="" width="100px" />
-                                    </div>`;
-					};
-					// Đọc file và chuyển đổi thành dữ liệu base64
-					reader.readAsDataURL(file);
+					const imgUrl = URL.createObjectURL(file); // Lấy URL của ảnh
+
+					// Thêm ảnh mới vào phần preview
+					previewImg.innerHTML += `<div class="mx-2">
+                                    <img src="${imgUrl}" alt="" width="100px" />
+                                </div>`;
 				}
 			}
 
@@ -303,7 +298,7 @@
 				// Lấy thông tin từ các trường input
 				const productName = productNameInput.value;
 				const model = modelInput.value;
-				const manufacturer = manufacturerInput.value;
+				const manufacturer = document.querySelector("#brandlist").value;
 				const idProduct = idProductInput.value;
 				const isBestSeller = bestSellerCheckbox.checked;
 				const categoryId = categoryList.value;
@@ -316,24 +311,49 @@
 					images.push(img.src);
 				});
 
-				// Tạo object chứa thông tin sản phẩm
-				const productInfo = {
-					productName: productName,
-					model: model,
-					manufacturer: manufacturer,
-					idProduct: idProduct,
-					besselling: isBestSeller,
-					idCategory: categoryId,
-					detail: detail,
-					images: images,
-				};
-
-				// Endpoint của Firebase Realtime Database để cập nhật thông tin sản phẩm
-				const firebaseEndpoint = `https://data-as-one-default-rtdb.firebaseio.com/products/${key}.json`;
+				// Tạo FormData để tải lên Cloudinary
+				const formData = new FormData();
+				files.forEach((file) => {
+					formData.append("file", file);
+					formData.append("upload_preset", "ml_default"); // Thay thế "ml_default" bằng upload preset của bạn trên Cloudinary
+				});
 
 				try {
+					// Gửi yêu cầu POST để tải lên các tệp ảnh lên Cloudinary
+					const uploadResponse = await fetch(
+						"https://api.cloudinary.com/v1_1/dnasp7ghs/image/upload",
+						{
+							method: "POST",
+							body: formData,
+						}
+					);
+
+					if (!uploadResponse.ok) {
+						throw new Error("Failed to upload images to Cloudinary");
+					}
+
+					const uploadData = await uploadResponse.json();
+
+					// Lưu URL của ảnh từ Cloudinary vào mảng images
+					images.push(uploadData.secure_url);
+
+					// Tạo object chứa thông tin sản phẩm
+					const productInfo = {
+						productName: productName,
+						model: model,
+						manufacturer: manufacturer,
+						idProduct: idProduct,
+						besselling: isBestSeller,
+						categoryId: categoryId,
+						detail: detail,
+						images: images,
+					};
+
+					// Endpoint của Firebase Realtime Database để cập nhật thông tin sản phẩm
+					const firebaseEndpoint = `https://data-as-one-default-rtdb.firebaseio.com/products/${key}.json`;
+
 					// Sử dụng fetch và phương thức PATCH để cập nhật thông tin sản phẩm
-					const response = await fetch(firebaseEndpoint, {
+					const updateResponse = await fetch(firebaseEndpoint, {
 						method: "PATCH",
 						headers: {
 							"Content-Type": "application/json",
@@ -342,7 +362,7 @@
 					});
 
 					// Kiểm tra nếu cập nhật thành công
-					if (response.ok) {
+					if (updateResponse.ok) {
 						console.log("Thông tin sản phẩm đã được cập nhật thành công!");
 						alert("Thông tin sản phẩm đã được cập nhật thành công!");
 					} else {

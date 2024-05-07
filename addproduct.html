@@ -39,6 +39,9 @@
 	</head>
 
 	<body>
+		<div id="spinner-overlay" class="spinner-overlay">
+			<div class="spinner"></div>
+		</div>
 		<div class="container-xxl position-relative bg-white d-flex p-0">
 			<!-- Spinner Start -->
 			<div
@@ -207,6 +210,14 @@
 			CKEDITOR.replace("editor", {});
 		</script>
 		<script>
+			function showSpinner() {
+				document.getElementById("spinner-overlay").style.display = "block";
+			}
+
+			// Ẩn spinner
+			function hideSpinner() {
+				document.getElementById("spinner-overlay").style.display = "none";
+			}
 			let param = new URLSearchParams(window.location.search);
 			let nameCate = param.get("name");
 			(async () => {
@@ -240,30 +251,28 @@
 				}
 			})();
 			function previewImages(event) {
+				showSpinner();
 				const previewContainer = document.getElementById("preview-img-product");
 				previewContainer.innerHTML = ""; // Xóa các hình ảnh trước đó (nếu có)
 
 				const files = event.target.files;
-				const images = [];
 
+				// Duyệt qua từng tệp hình ảnh và hiển thị chúng
 				for (let i = 0; i < files.length; i++) {
-					const reader = new FileReader();
 					const file = files[i];
+					const imgUrl = URL.createObjectURL(file); // Lấy URL của ảnh
 
-					reader.onload = function () {
-						const img = document.createElement("img");
-						img.src = reader.result; // Chuyển base64 vào src của thẻ img
-						img.width = 100; // Thiết lập kích thước ảnh trước
+					const img = document.createElement("img");
+					img.src = imgUrl; // Thiết lập src là URL của ảnh
+					img.width = 100; // Thiết lập kích thước ảnh trước
 
-						// Thêm ảnh vào container
-						previewContainer.appendChild(img);
-					};
-
-					// Đọc file và chuyển đổi thành base64
-					reader.readAsDataURL(file);
+					// Thêm ảnh vào container
+					previewContainer.appendChild(img);
 				}
+				hideSpinner();
 			}
 			async function addProduct() {
+				showSpinner();
 				const productName = document.querySelector("#productName").value;
 				const model = document.querySelector("#model").value;
 				const manufacturer = document.querySelector("#brandlist").value;
@@ -271,12 +280,29 @@
 				const isBestSeller = document.querySelector("#bestSeller").checked;
 				const categoryId = document.querySelector("#categoryList").value;
 				const detail = CKEDITOR.instances["editor"].getData();
+				const files = document.querySelector("#productImageInput").files;
 
-				// Lấy đường dẫn của các hình ảnh từ thẻ img xem trước
-				const previewImages = document.querySelectorAll(
-					"#preview-img-product img"
-				);
-				const images = Array.from(previewImages).map((img) => img.src);
+				const images = [];
+
+				// Tải lên các hình ảnh lên Cloudinary
+				for (let i = 0; i < files.length; i++) {
+					const file = files[i];
+					const formData = new FormData();
+					formData.append("file", file);
+					formData.append("upload_preset", "ml_default"); // Thay thế "your_cloudinary_upload_preset" bằng upload preset của bạn trên Cloudinary
+
+					// Gửi yêu cầu POST để tải lên hình ảnh lên Cloudinary
+					const response = await fetch(
+						"https://api.cloudinary.com/v1_1/dnasp7ghs/image/upload",
+						{
+							method: "POST",
+							body: formData,
+						}
+					);
+
+					const data = await response.json();
+					images.push(data.secure_url); // Lấy URL của hình ảnh từ Cloudinary và thêm vào mảng images
+				}
 
 				// Tạo object chứa thông tin sản phẩm
 				const productInfo = {
@@ -291,6 +317,7 @@
 				};
 
 				try {
+					// Gửi yêu cầu POST để thêm sản phẩm vào cơ sở dữ liệu Firebase
 					const response = await fetch(
 						`https://data-as-one-default-rtdb.firebaseio.com/${nameCate}.json`,
 						{
@@ -313,6 +340,7 @@
 					console.error("Đã xảy ra lỗi:", error);
 					alert("Đã xảy ra lỗi: " + error);
 				}
+				hideSpinner();
 			}
 		</script>
 		<script>
