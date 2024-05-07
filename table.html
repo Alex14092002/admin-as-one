@@ -112,7 +112,8 @@
 						<div class="col-12">
 							<div class="bg-light rounded h-100 p-4">
 								<div class="d-flex justify-content-between py-4">
-									<h6 class="mb-4">Danh mục sản phẩm</h6>
+									<h2 class="mb-4">Danh mục sản phẩm</h2>
+									<h5 class="mb-4">Tổng : <span id="sum"></span></h5>
 									<div id="add_product"></div>
 								</div>
 								<div class="table-responsive">
@@ -193,12 +194,13 @@
 
 			let param = new URLSearchParams(window.location.search);
 			let name = param.get("name");
-
+			let sum = 0;
 			(async () => {
 				const add_product = document.querySelector("#add_product");
 				add_product.innerHTML += `
       <a href="addproduct.html?name=${name}" class="btn btn-success">Thêm sản phẩm</a>
       `;
+
 				const res = await fetch(
 					`https://data-as-one-default-rtdb.firebaseio.com/${name}.json`
 				);
@@ -206,8 +208,15 @@
 				console.log(data);
 				const table = document.querySelector("#table");
 				if (data) {
-					Object.entries(data).map(([key, value]) => {
+					// Lưu các khóa của đối tượng data vào một mảng tạm thời
+					const keys = Object.keys(data);
+
+					// Hiển thị dữ liệu theo thứ tự ngược lại của mảng keys
+					for (let i = keys.length - 1; i >= 0; i--) {
+						const key = keys[i];
+						const value = data[key];
 						if (value != null) {
+							sum++;
 							table.innerHTML += `
                 <tr>
                         <td>${value.productName ? value.productName : ""}</td>
@@ -220,16 +229,17 @@
                         </td>
                         <td>${value.idProduct}</td>
                         <td>
-                          <a href='./updateproduct.html?cate=${name}&&key=${key}' class="btn btn-primary">Sửa</a>
+                          <a href='./updateproduct.html?cate=${name}&key=${key}' class="btn btn-primary">Sửa</a>
                           <button class="btn btn-danger" data-cate="${name}" data-key="${key}">Xoá</button>
 
                         </td>
                       </tr>
                 `;
 						}
-					});
+					}
 				}
 				setupDeleteButtons(); // Gọi sau khi tải và hiển thị dữ liệu
+				document.querySelector("#sum").innerHTML = sum;
 			})();
 		</script>
 		<script>
