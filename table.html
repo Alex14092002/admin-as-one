@@ -171,6 +171,92 @@
 		<script src="js/main.js"></script>
 
 		<script>
+			// Biến global để kiểm tra xem đang tải dữ liệu hay không
+			let loading = false;
+
+			// Biến global để lưu trữ số lượng sản phẩm đã tải
+			let loadedProductsCount = 0;
+
+			// Biến global để lưu trữ tổng số sản phẩm
+			let totalProductsCount = 0;
+
+			// Hàm kiểm tra xem người dùng đã cuộn đến cuối trang chưa
+			function isScrollAtBottom() {
+				return (
+					window.innerHeight + window.scrollY >= document.body.offsetHeight
+				);
+			}
+
+			// Hàm tải thêm dữ liệu sản phẩm
+			async function loadMoreProducts() {
+				// Kiểm tra xem đang tải dữ liệu hay không
+				if (!loading) {
+					loading = true;
+
+					// Thực hiện yêu cầu tải dữ liệu sản phẩm mới
+					try {
+						const res = await fetch(
+							`https://data-as-one-default-rtdb.firebaseio.com/${name}.json`
+						);
+						const newData = await res.json();
+
+						// Lấy danh sách sản phẩm hiện có trên trang
+						const table = document.querySelector("#table");
+
+						// Lấy tất cả các sản phẩm trong dữ liệu mới
+						const products = Object.entries(newData);
+
+						// Lấy chỉ số của sản phẩm đầu tiên cần tải tiếp theo
+						const nextIndex = loadedProductsCount;
+
+						// Tải tối đa 10 sản phẩm mỗi lần
+						const productsToLoad = products.slice(nextIndex, nextIndex + 10);
+
+						// Hiển thị dữ liệu mới trong bảng sản phẩm
+						for (const [key, value] of Object.entries(data)) {
+							const row = document.createElement("tr");
+							row.innerHTML = `
+        <td>${value.productName ? value.productName : ""}</td>
+        <td>${value.model ? value.model : ""}</td>
+        <td>${value.manufacturer ? value.manufacturer : ""}</td>
+        <td>
+            <img src="${
+							value.images ? value.images[0] : ""
+						}" alt="" width="100px">
+        </td>
+        <td>${value.idProduct}</td>
+        <td>
+            <a href='./updateproduct.html?cate=${name}&key=${key}' class="btn btn-primary">Sửa</a>
+            <button class="btn btn-danger" data-cate="${name}" data-key="${key}">Xoá</button>
+        </td>
+    `;
+							table.insertBefore(row, table.firstChild); // Thêm vào đầu bảng
+						}
+
+						// Cập nhật số lượng sản phẩm đã tải
+						loadedProductsCount += productsToLoad.length;
+
+						// Cập nhật trạng thái đang tải dữ liệu
+						loading = false;
+
+						// Cập nhật tổng số sản phẩm
+						totalProductsCount = Object.keys(newData).length;
+						document.querySelector("#sum").innerHTML = totalProductsCount;
+					} catch (error) {
+						console.error("Failed to load more products:", error);
+						// Xử lý lỗi nếu cần thiết
+					}
+				}
+			}
+
+			// Sự kiện cuộn trang
+			window.addEventListener("scroll", () => {
+				if (isScrollAtBottom()) {
+					loadMoreProducts();
+				}
+			});
+
+			// Function to delete product by ID
 			async function deleteProduct(cate, key) {
 				try {
 					const response = await fetch(
@@ -205,56 +291,7 @@
 				});
 			}
 
-			let param = new URLSearchParams(window.location.search);
-			let name = param.get("name");
-			let sum = 0;
-			(async () => {
-				const add_product = document.querySelector("#add_product");
-				add_product.innerHTML += `
-      <a href="addproduct.html?name=${name}" class="btn btn-success">Thêm sản phẩm</a>
-      `;
-
-				const res = await fetch(
-					`https://data-as-one-default-rtdb.firebaseio.com/${name}.json`
-				);
-				const data = await res.json();
-				console.log(data);
-				const table = document.querySelector("#table");
-				if (data) {
-					// Lưu các khóa của đối tượng data vào một mảng tạm thời
-					const keys = Object.keys(data);
-
-					// Hiển thị dữ liệu theo thứ tự ngược lại của mảng keys
-					for (let i = keys.length - 1; i >= 0; i--) {
-						const key = keys[i];
-						const value = data[key];
-						if (value != null) {
-							sum++;
-							table.innerHTML += `
-                <tr>
-                        <td>${value.productName ? value.productName : ""}</td>
-                        <td>${value.model ? value.model : ""}</td>
-                        <td>${value.manufacturer ? value.manufacturer : ""}</td>
-                        <td>
-                            <img src="${
-															value.images ? value.images[0] : ""
-														}" alt="" width="100px">
-                        </td>
-                        <td>${value.idProduct}</td>
-                        <td>
-                          <a href='./updateproduct.html?cate=${name}&key=${key}' class="btn btn-primary">Sửa</a>
-                          <button class="btn btn-danger" data-cate="${name}" data-key="${key}">Xoá</button>
-
-                        </td>
-                      </tr>
-                `;
-						}
-					}
-				}
-				setupDeleteButtons(); // Gọi sau khi tải và hiển thị dữ liệu
-				document.querySelector("#sum").innerHTML = sum;
-			})();
-			// Function to search products by ID
+			// Hàm tìm kiếm sản phẩm theo ID
 			function searchProductsByID() {
 				const searchInput = document
 					.getElementById("searchInput")
@@ -267,18 +304,68 @@
 					if (idCell) {
 						const idText = idCell.textContent.trim().toLowerCase();
 						if (idText.includes(searchInput)) {
-							row.style.display = ""; // Show the row if ID matches
+							row.style.display = ""; // Hiển thị dòng nếu ID trùng khớp
 						} else {
-							row.style.display = "none"; // Hide the row if ID doesn't match
+							row.style.display = "none"; // Ẩn dòng nếu ID không trùng khớp
 						}
 					}
 				});
 			}
 
-			// Add click event listener to the Search button
+			// Sự kiện click cho nút Tìm kiếm
 			document
 				.getElementById("searchButton")
 				.addEventListener("click", searchProductsByID);
+
+			let param = new URLSearchParams(window.location.search);
+			let name = param.get("name");
+
+			// Hàm tải dữ liệu ban đầu
+			async function loadInitialData() {
+				try {
+					const add_product = document.querySelector("#add_product");
+					add_product.innerHTML += `
+							<a href="addproduct.html?name=${name}" class="btn btn-success">Thêm sản phẩm</a>
+						`;
+
+					// Thực hiện yêu cầu tải dữ liệu sản phẩm ban đầu
+					const res = await fetch(
+						`https://data-as-one-default-rtdb.firebaseio.com/${name}.json`
+					);
+					const data = await res.json();
+					const table = document.querySelector("#table");
+					if (data) {
+						// Hiển thị dữ liệu ban đầu trong bảng sản phẩm
+						for (const [key, value] of Object.entries(data)) {
+							const row = document.createElement("tr");
+							row.innerHTML = `
+        <td>${value.productName ? value.productName : ""}</td>
+        <td>${value.model ? value.model : ""}</td>
+        <td>${value.manufacturer ? value.manufacturer : ""}</td>
+        <td>
+            <img src="${
+							value.images ? value.images[0] : ""
+						}" alt="" width="100px">
+        </td>
+        <td>${value.idProduct}</td>
+        <td>
+            <a href='./updateproduct.html?cate=${name}&key=${key}' class="btn btn-primary">Sửa</a>
+            <button class="btn btn-danger" data-cate="${name}" data-key="${key}">Xoá</button>
+        </td>
+    `;
+							table.insertBefore(row, table.firstChild); // Thêm vào đầu bảng
+						}
+					}
+					setupDeleteButtons(); // Gọi sau khi tải và hiển thị dữ liệu
+					totalProductsCount = Object.keys(data).length;
+					document.querySelector("#sum").innerHTML = totalProductsCount;
+				} catch (error) {
+					console.error("Failed to load initial products:", error);
+				}
+			}
+
+			// Gọi hàm tải dữ liệu ban đầu
+			loadInitialData();
 		</script>
 		<script>
 			document.addEventListener("DOMContentLoaded", function () {
